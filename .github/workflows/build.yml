@@ -1,0 +1,62 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ v* ]
+  pull_request:
+
+jobs:
+  build:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-latest, macos-latest, ubuntu-latest ]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - name: install os-specific build deps and environment (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt -y install libbotan-2-dev cmake make g++
+
+      - name: install os-specific build deps and environment (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install botan
+
+      - name: install MSys and Windows-specific dependencies
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ucrt64
+          pacboy: >-
+            toolchain:p
+            cmake:p
+            libbotan:p
+
+      # build plugin
+      - name: build plugin Windows
+        if: runner.os == 'Windows'
+        shell:  msys2 {0}
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build .
+
+      - name: build plugin non-Windows
+        if: runner.os != 'Windows'
+        shell:  bash
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build .
