@@ -1,0 +1,3 @@
+= Confium botan plugin
+
+image:https://github.com/confium/confium-plugin-botan/actions/workflows/build.yml/badge.svg["build", link="https://github.com/confium/confium-plugin-botan/actions/workflows/build.yml"]
