@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(cfm-hash-botan
+project(confium-plugin-botan
     LANGUAGES CXX
 )
 
@@ -20,4 +20,6 @@ target_link_libraries(cfm-hash-botan
 
 set_target_properties(cfm-hash-botan PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
-install(TARGETS cfm-hash-botan DESTINATION .)
+include(GNUInstallDirs)
+install(TARGETS cfm-hash-botan DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+
