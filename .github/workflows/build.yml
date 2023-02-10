@@ -9,6 +9,7 @@ on:
       - '/.*'
       - '/_*'
       - '**.txt'
+      - '!CMakeLists.txt'
       - '**.adoc'
       - '**.md'
       - '**.nix'
