@@ -53,7 +53,7 @@ jobs:
           sudo apt -y install cmake make g++
           git clone --depth 1 --branch $BOTAN_VERSION https://github.com/randombit/botan.git /tmp/botan-src
           cd /tmp/botan-src
-          ./configure.py --prefix=/usr/local --disable-optimization
+          ./configure.py --prefix=/usr/local
           make -j2
           sudo make install
           sudo ldconfig
