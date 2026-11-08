@@ -5,21 +5,41 @@ project(confium-plugin-botan
 )
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/Modules")
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(cfm-hash-botan SHARED
+add_library(cfm-botan SHARED
     src/lib.cpp
 )
 
-find_package(Botan2 REQUIRED)
+find_package(Botan3 REQUIRED)
 
-target_link_libraries(cfm-hash-botan
+target_link_libraries(cfm-botan
     PRIVATE
-        Botan2::Botan2
+        Botan3::Botan3
 )
 
-set_target_properties(cfm-hash-botan PROPERTIES CXX_VISIBILITY_PRESET hidden)
+set_target_properties(cfm-botan PROPERTIES CXX_VISIBILITY_PRESET hidden)
+
+enable_testing()
+
+add_executable(cfm-botan-test
+    tests/test_botan.cpp
+)
+
+target_link_libraries(cfm-botan-test
+    PRIVATE
+        cfm-botan
+        Botan3::Botan3
+)
+
+# locate the plugin shared library next to the test binary at runtime
+set_target_properties(cfm-botan-test PROPERTIES
+    BUILD_RPATH "$ORIGIN"
+    INSTALL_RPATH "$ORIGIN"
+)
+
+add_test(NAME botan-plugin COMMAND cfm-botan-test)
 
 include(GNUInstallDirs)
-install(TARGETS cfm-hash-botan DESTINATION "${CMAKE_INSTALL_LIBDIR}")
-
+install(TARGETS cfm-botan DESTINATION "${CMAKE_INSTALL_LIBDIR}")

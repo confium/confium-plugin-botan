@@ -27,10 +27,13 @@ on:
       - '**.nix'
       - 'flake.lock'
 
+env:
+  BOTAN_VERSION: "3.14.0"
+
 jobs:
   build:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -43,15 +46,23 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: install os-specific build deps and environment (Linux)
+      # Linux: distro botan-3 packages predate 3.13 (no GCM-SIV), build from source
+      - name: build Botan from source (Linux)
         if: runner.os == 'Linux'
         run: |
-          sudo apt -y install libbotan-2-dev cmake make g++
+          sudo apt -y install cmake make g++
+          git clone --depth 1 --branch $BOTAN_VERSION https://github.com/randombit/botan.git /tmp/botan-src
+          cd /tmp/botan-src
+          ./configure.py --prefix=/usr/local --disable-optimization
+          make -j2
+          sudo make install
+          sudo ldconfig
 
-      - name: install os-specific build deps and environment (macOS)
+      - name: install botan (macOS)
         if: runner.os == 'macOS'
         run: |
           brew install botan
+          botan version
 
       - name: install MSys and Windows-specific dependencies
         if: runner.os == 'Windows'
@@ -63,21 +74,29 @@ jobs:
             cmake:p
             libbotan:p
 
-      # build plugin
-      - name: build plugin Windows
+      - name: report botan version (Windows)
         if: runner.os == 'Windows'
-        shell:  msys2 {0}
+        shell: msys2 {0}
         run: |
-          mkdir build
-          cd build
-          cmake ..
-          cmake --build .
+          grep -E "BOTAN_VERSION_(MAJOR|MINOR|PATCH)" /ucrt64/include/botan/version.h || true
 
-      - name: build plugin non-Windows
-        if: runner.os != 'Windows'
-        shell:  bash
+      # build plugin
+      - name: build and test plugin Windows
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
         run: |
           mkdir build
           cd build
           cmake ..
           cmake --build .
+          ctest --output-on-failure
+
+      - name: build and test plugin non-Windows
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build .
+          ctest --output-on-failure
