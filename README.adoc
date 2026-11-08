@@ -1,3 +1,47 @@
 = Confium botan plugin
 
 image:https://github.com/confium/confium-plugin-botan/actions/workflows/build.yml/badge.svg["build", link="https://github.com/confium/confium-plugin-botan/actions/workflows/build.yml"]
+
+Confium provider plugin backed by https://botan.randombit.net/[Botan 3].
+
+Requires **Botan >= 3.13** (the release that implemented RFC 8452
+AES-GCM-SIV, from https://github.com/randombit/botan/pull/5770[botan#5770]
+— a feature originally requested in
+https://github.com/randombit/botan/issues/2221[botan#2221] and sponsored by
+Ribose).
+
+== Interfaces and algorithms
+
+[cols="1,2"]
+|===
+| Interface | Algorithms
+
+| `hash`
+| Every hash function Botan offers (e.g. `SHA-256`, `SHA-512`, `SHA3-256`)
+
+| `aead`
+| `AES-128-GCM-SIV`, `AES-256-GCM-SIV` (RFC 8452), `AES-256-GCM`,
+  `ChaCha20-Poly1305`
+|===
+
+== Decrypt semantics for SIV modes
+
+GCM-SIV derives its CTR keying material from the authentication tag, so
+decryption cannot start until the tag is known. Within the Confium AEAD
+contract this means:
+
+* `decrypt_update` buffers ciphertext and produces no output for SIV
+  modes until the tag has been verified.
+* `verify_tag` completes the decryption; the plaintext is then drained
+  through a subsequent `decrypt_update` call with a zero-length input.
+* Plaintext must not be trusted until `verify_tag` has returned success.
+
+== Building
+
+[source,sh]
+----
+mkdir build && cd build
+cmake ..          # Botan 3 is located via pkg-config or CMAKE_PREFIX_PATH
+cmake --build .
+ctest             # runs the hash + RFC 8452 vector tests
+----
