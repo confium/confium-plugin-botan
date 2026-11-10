@@ -108,10 +108,13 @@ cfmp_finalize(Confium *cfm)
 const uint8_t *
 cfmp_query_interfaces(Confium *cfm)
 {
-    // packed `name + NUL + version_byte + NUL` byte stream
+    // packed `name + NUL + version_byte` entries; an empty name
+    // terminates the stream. There is NO NUL after the version byte —
+    // the next entry's name begins immediately.
     static const uint8_t interfaces[] = {
-      'h',   'a',   's',   'h',   '\0',  0x00,  '\0',
-      'a',   'e',   'a',   'd',   '\0',  0x00,  '\0',
+      'h', 'a', 's', 'h', '\0', 0x00,
+      'a', 'e', 'a', 'd', '\0', 0x00,
+      '\0',
     };
     return interfaces;
 }

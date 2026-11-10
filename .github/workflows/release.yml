@@ -1,0 +1,104 @@
+name: release
+
+on:
+  push:
+    tags: [ v* ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, ext: so }
+          - { os: macos-latest, ext: dylib }
+          - { os: windows-latest, ext: dll }
+
+    runs-on: ${{ matrix.os }}
+    env:
+      PLUGIN_VERSION: ${{ github.ref_name }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Linux: distro botan-3 packages predate 3.13 (no GCM-SIV), build from source
+      - name: build Botan from source (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt -y install cmake make g++
+          git clone --depth 1 --branch 3.14.0 https://github.com/randombit/botan.git /tmp/botan-src
+          cd /tmp/botan-src
+          ./configure.py --prefix=/usr/local
+          make -j2
+          sudo make install
+          sudo ldconfig
+
+      - name: install botan (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install botan
+          botan version
+
+      - name: install MSys and Windows-specific dependencies
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ucrt64
+          pacboy: >-
+            toolchain:p
+            cmake:p
+            libbotan:p
+
+      - name: build and test plugin Windows
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build .
+          ctest --output-on-failure
+
+      - name: build and test plugin non-Windows
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build .
+          ctest --output-on-failure
+
+      - name: stage artifact
+        shell: bash
+        run: |
+          VERSION="${PLUGIN_VERSION#v}"
+          mkdir -p stage
+          case "${{ matrix.ext }}" in
+            so)    cp build/libcfm-botan.so "stage/libcfm-botan-${VERSION}.so" ;;
+            dylib) cp build/libcfm-botan.dylib "stage/libcfm-botan-${VERSION}.dylib" ;;
+            dll)   cp build/libcfm-botan.dll "stage/libcfm-botan-${VERSION}.dll" ;;
+          esac
+          # Botan's shared library is dynamically linked; publish it next
+          # to the plugin so the release is self-contained.
+          if [ "${{ matrix.ext }}" = "so" ]; then
+            cp /usr/local/lib/libbotan-3.so* stage/ || true
+          fi
+
+      - name: compute sha256
+        shell: bash
+        run: |
+          cd stage
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: stage/*
+          fail_on_unmatched_files: true
