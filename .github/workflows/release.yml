@@ -31,7 +31,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt -y install cmake make g++
-          git clone --depth 1 --branch 3.14.0 https://github.com/randombit/botan.git /tmp/botan-src
+          git clone --depth 1 --branch 3.14.1 https://github.com/randombit/botan.git /tmp/botan-src
           cd /tmp/botan-src
           ./configure.py --prefix=/usr/local
           make -j2

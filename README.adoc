@@ -10,6 +10,18 @@ AES-GCM-SIV, from https://github.com/randombit/botan/pull/5770[botan#5770]
 https://github.com/randombit/botan/issues/2221[botan#2221] and sponsored by
 Ribose).
 
+== Versioning
+
+Plugin versions follow `{botan major}.{botan minor}.{plugin-local}` —
+the same scheme as ruby-botan: the major.minor pair tracks the baseline
+Botan release the plugin requires (3.13), and the patch component is
+the plugin's own iteration counter on that baseline. When the required
+Botan baseline moves (e.g. to a future 4.x), the plugin moves to
+4.x.y. Release tags are `v<version>` (e.g. `v3.13.0`); pushing a tag
+builds, tests, and attaches `libcfm-botan-<version>.{dylib,so,dll}`
+plus `SHA256SUMS` to the GitHub Release for `confium-publish` to hash
+and sign.
+
 == Interfaces and algorithms
 
 [cols="1,2"]
