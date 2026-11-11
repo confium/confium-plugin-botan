@@ -94,8 +94,11 @@ jobs:
         shell: bash
         run: |
           cd stage
-          sha256sum * > SHA256SUMS
-          cat SHA256SUMS
+          # per-platform file: parallel jobs each stage their own
+          # artifacts, so a single shared SHA256SUMS would be overwritten
+          # by whichever job uploads last
+          sha256sum * > SHA256SUMS-${{ matrix.ext }}
+          cat SHA256SUMS-${{ matrix.ext }}
 
       - name: upload to release
         uses: softprops/action-gh-release@v2
